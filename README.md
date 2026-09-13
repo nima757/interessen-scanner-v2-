@@ -1,29 +1,38 @@
-# Auffälligkeits-Scanner Deutschland v2
+# Auffälligkeits-Scanner Deutschland v3
 
-Automatischer MVP für die Recherche möglicher Interessenkonflikte und ungewöhnlicher Überschneidungen.
+## Was wurde gegenüber v2 geändert?
 
-## Datenquellen
+v2 konnte auf einer veralteten/heuristisch geparsten Bundestag-XML-URL 0 Personen liefern. Dadurch war ein "0 Treffer"-Scan irreführend.
 
-- Deutscher Bundestag Open Data: maschinenlesbare Biografien, Drucksachen, Plenarprotokolle und Abstimmungslisten.
-- Lobbyregister des Deutschen Bundestages: öffentliche Registerdaten über API.
-- GovData: Metadatenkatalog über CKAN API.
-- Google News RSS: ergänzende, nicht primäre Recherchequelle.
-- Optional OpenSanctions: Personen-/Organisationsabgleich.
+v3 verwendet als Primärquelle die maschinenlesbare API von Abgeordnetenwatch für:
+- aktuelle Bundestagsmandate,
+- veröffentlichte Nebentätigkeiten,
+- Ausschussmitgliedschaften.
 
-## API-Keys
+Die Bundestagsverwaltung stellt daneben offizielle Stammdaten als XML bereit; die aktuelle Open-Data-Seite verweist auf `MdB-Stammdaten.zip`. Diese ZIP bleibt als dokumentierte Primärquelle erhalten, wird in v3 aber nicht mehr heuristisch geparst.
 
-In Streamlit Secrets oder Umgebungsvariablen:
-- LOBBYREGISTER_API_KEY
-- OPENSANCTIONS_API_KEY (optional)
-- BUNDESTAG_PEOPLE_URL (optional)
+### Sicherheits-/Qualitätshinweis
 
-Keine Schlüssel in Git committen.
+Eine veröffentlichte Nebentätigkeit ist **nicht automatisch eine Auffälligkeit**. Der Scanner erzeugt nur Prüfhinweise, wenn strukturierte Merkmale eine nähere Prüfung rechtfertigen. Es werden keine Schuld- oder Korruptionsbehauptungen erzeugt.
 
-## Wichtiger Datenhinweis
+Förderprogramme und GovData-Metadaten werden nicht als Beweis für eine konkrete Zahlung an eine Person interpretiert.
 
-Der MVP darf aus GovData-Metadaten nicht schließen, dass eine bestimmte Person oder Organisation eine bestimmte Förderung erhalten hat. Für belastbare Förderfall-Analysen müssen konkrete Förderempfänger-Datensätze angebunden werden.
+## Quellen
 
-Ebenso ist eine Namenssuche nicht ausreichend, um Identität festzustellen. Treffer müssen über weitere Merkmale verifiziert werden.
+- Abgeordnetenwatch API: https://www.abgeordnetenwatch.de/api
+- Bundestag Open Data: https://www.bundestag.de/open-data-inhalt-472740
+- Lobbyregister API V2: https://www.lobbyregister.bundestag.de/informationen-und-hilfe/open-data-1049716
+- GovData: https://www.govdata.de/
+
+## Optional: Lobbyregister
+
+In Streamlit unter App Settings → Secrets:
+
+```toml
+LOBBYREGISTER_API_KEY = "DEIN_KEY"
+```
+
+Ohne diesen Key funktioniert der Kernscan trotzdem.
 
 ## Start
 
@@ -31,7 +40,3 @@ Ebenso ist eine Namenssuche nicht ausreichend, um Identität festzustellen. Tref
 pip install -r requirements.txt
 streamlit run app.py
 ```
-
-## Cloud
-
-Repository auf GitHub hochladen, in Streamlit Community Cloud verbinden und `app.py` als Entrypoint wählen. Secrets im Streamlit-Secrets-Bereich hinterlegen.

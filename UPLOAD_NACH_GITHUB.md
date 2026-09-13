@@ -1,9 +1,6 @@
-# Manueller Upload nach GitHub
+# V3 hochladen
 
-Das Repository `interessen-scanner-v2` soll die Projektdateien direkt im Stammverzeichnis enthalten.
+Die V3-Dateien ersetzen die gleichnamigen Dateien im Repository.
+`app.py` muss im Stammverzeichnis bleiben.
 
-WICHTIG:
-- Nicht die ZIP-Datei selbst in GitHub hochladen.
-- Stattdessen den Inhalt dieser ZIP entpacken und die Dateien hochladen.
-- `app.py` muss direkt im Stammverzeichnis liegen.
-- API-Schlüssel niemals in den Code schreiben; später über Streamlit Secrets hinterlegen.
+Nach dem Commit startet Streamlit normalerweise automatisch einen neuen Build.

@@ -1,4 +1,4 @@
-import sqlite3, re, json
+import sqlite3, re
 from pathlib import Path
 import pandas as pd
 DB=Path("data/scanner.db")
@@ -16,10 +16,11 @@ def init_db():
 def save_run(r):
     c=sqlite3.connect(DB)
     c.execute("INSERT INTO scans(created_at,alerts,strong,medium,sources,payload) VALUES(?,?,?,?,?,?)",
-      (r["created_at"],len(r["alerts"]),sum(x["score"]>=75 for x in r["alerts"]),sum(50<=x["score"]<75 for x in r["alerts"]),r["source_count"],r["json"]))
+      (r["created_at"],len(r["alerts"]),sum(x["score"]>=75 for x in r["alerts"]),
+       sum(50<=x["score"]<75 for x in r["alerts"]),r["source_count"],r["json"]))
     c.commit(); c.close()
 
 def load_runs():
     c=sqlite3.connect(DB)
-    df=pd.read_sql_query("SELECT created_at AS Zeitpunkt,alerts AS Auffällig,strong AS Stark,medium AS Mittel,sources AS Quellen FROM scans ORDER BY id DESC LIMIT 30",c)
+    df=pd.read_sql_query("SELECT created_at AS Zeitpunkt,alerts AS Prüfhinweise,strong AS Stark,medium AS Auffällig,sources AS Quellen FROM scans ORDER BY id DESC LIMIT 30",c)
     c.close(); return df
