@@ -49,7 +49,11 @@ if "scan" in st.session_state:
         st.success("Keine Prüfhinweise oberhalb des gewählten Schwellenwerts. Das ist keine Aussage über das Fehlen von Interessenkonflikten.")
 
     st.subheader("Quellengesundheit")
-    for d in r["source_health"]:
+    # Robust gegen alte Session-/Scan-Ergebnisse ohne source_health.
+    source_health = r.get("source_health") or []
+    if not source_health:
+        st.info("Für diesen Scan liegen noch keine Quellendiagnosen vor. Bitte einen neuen Scan starten.")
+    for d in source_health:
         icon="✅" if d.get("ok") else "⚠️"
         extra=f" · {d.get('records',0)} Datensätze"
         if d.get("error"): extra+=f" · {d['error']}"
