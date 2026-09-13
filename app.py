@@ -32,7 +32,11 @@ if scan_btn:
 if "scan" in st.session_state:
     r=st.session_state["scan"]
     st.subheader("Scan-Ergebnis")
-    st.caption(f"Start: {r['created_at']} · Bundestags-Personen: {r['people_count']} · Kandidaten: {r['candidate_count']}")
+    # Robust gegen ältere/abweichende Scan-Ergebnisse ohne created_at.
+    created_at = r.get("created_at") or r.get("created") or "Zeitpunkt nicht verfügbar"
+    people_count = r.get("people_count", 0)
+    candidate_count = r.get("candidate_count", 0)
+    st.caption(f"Start: {created_at} · Bundestags-Personen: {people_count} · Kandidaten: {candidate_count}")
     a,b,c,d=st.columns(4)
     a.metric("Prüfhinweise",len(r["alerts"]))
     b.metric("Stark",sum(x["score"]>=75 for x in r["alerts"]))
@@ -51,17 +55,17 @@ if "scan" in st.session_state:
         if d.get("error"): extra+=f" · {d['error']}"
         st.write(f"{icon} **{d['name']}**{extra}")
 
-    for x in r["alerts"]:
-        level="🔴 Stark auffällig" if x["score"]>=75 else "🟠 Auffällig" if x["score"]>=50 else "🟡 Prüfhweis"
+    for x in r.get("alerts", []):
+        level="🔴 Stark auffällig" if x["score"]>=75 else "🟠 Auffällig" if x["score"]>=50 else "🟡 Prüfhinweis"
         with st.expander(f"{level} · {x['score']}/100 · {x['person']}",expanded=x["score"]>=75):
             if x.get("party"): st.write(f"Partei: {x['party']}")
             st.write(x["summary"])
             st.markdown("**Evidenzkette**")
             for e in x["evidence"]: st.write("• "+e)
-            if x["time_axis"]: st.caption("Zeitachse: "+", ".join(sorted(set(x["time_axis"]))[:8]))
-            if x["sources"]:
+            if x.get("time_axis"): st.caption("Zeitachse: "+", ".join(sorted(set(x.get("time_axis", [])))[:8]))
+            if x.get("sources"):
                 st.markdown("**Quellen**")
-                for s in x["sources"]:
+                for s in x.get("sources", []):
                     title=s.get("title") or s.get("source") or "Quelle"
                     url=s.get("url")
                     if url: st.markdown(f"- [{title}]({url})")
