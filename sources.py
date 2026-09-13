@@ -44,41 +44,60 @@ def _ref_id(ref):
     return ref
 
 def fetch_current_bundestag():
-    """Primary universe: current Bundestag mandates via Abgeordnetenwatch.
-    This avoids the brittle heuristic XML parser used in v2."""
+    """Primary universe: currently active Bundestag mandates via Abgeordnetenwatch.
+    Uses the documented Bundestag parliament id (5) and the API's current_on=now
+    filter, avoiding brittle guessing of the current project/period.
+    """
     diagnostics={"name":"Abgeordnetenwatch","ok":False,"records":0,"error":None,"url":AW_BASE}
-    parliaments, err = _get(f"{AW_BASE}/parliaments", {"range_end":200})
-    if err:
-        diagnostics["error"]=err; return [], diagnostics
-    ps=_data(parliaments)
-    bt=next((p for p in ps if "bundestag" in (_ref_label(p.get("label"))+" "+_ref_label(p.get("label_external_long"))).lower()), None)
-    if not bt:
-        diagnostics["error"]="Bundestag in API-Parlamenten nicht gefunden"; return [], diagnostics
 
-    current=bt.get("current_project") or {}
-    period_id=_ref_id(current)
+    # Bundestag is documented by Abgeordnetenwatch as parliament id 5.
+    parliament_id = 5
+    periods, err = _get(
+        f"{AW_BASE}/parliament-periods",
+        {"parliament": parliament_id, "type":"legislature", "range_end":100}
+    )
+    if err:
+        diagnostics["error"] = f"Parlamentsperioden: {err}"
+        return [], diagnostics
+
+    candidates = _data(periods)
+    if not candidates:
+        diagnostics["error"] = "Keine Bundestags-Legislatur gefunden"
+        return [], diagnostics
+
+    # Prefer a period that is currently active; otherwise use the latest by start date.
+    active = [p for p in candidates if not p.get("end_date_period")]
+    if active:
+        period = sorted(active, key=lambda x: x.get("start_date_period") or "", reverse=True)[0]
+    else:
+        period = sorted(candidates, key=lambda x: x.get("start_date_period") or "", reverse=True)[0]
+    period_id = period.get("id")
     if not period_id:
-        periods, err = _get(f"{AW_BASE}/parliament-periods", {"parliament":bt.get("id"),"type":"legislature","range_end":100})
-        if err:
-            diagnostics["error"]=err; return [], diagnostics
-        candidates=_data(periods)
-        if not candidates:
-            diagnostics["error"]="Keine Bundestags-Legislatur gefunden"; return [], diagnostics
-        period_id=candidates[0].get("id")
+        diagnostics["error"] = "Bundestags-Legislatur ohne ID"
+        return [], diagnostics
 
-    mandates, err = _get(f"{AW_BASE}/candidacies-mandates",
-                          {"parliament_period":period_id,"type":"mandate","range_end":1000})
+    mandates, err = _get(
+        f"{AW_BASE}/candidacies-mandates",
+        {
+            "parliament_period": period_id,
+            "type": "mandate",
+            "current_on": "now",
+            "range_end": 1000,
+        }
+    )
     if err:
-        diagnostics["error"]=err; return [], diagnostics
+        diagnostics["error"] = f"Mandate: {err}"
+        return [], diagnostics
 
     out=[]
     for m in _data(mandates):
-        if m.get("type") != "mandate": continue
+        if m.get("type") != "mandate":
+            continue
         pol=m.get("politician") or {}
         pid=_ref_id(pol)
         name=_ref_label(pol)
-        if not pid or not name: continue
-        if m.get("end_date"): continue
+        if not pid or not name:
+            continue
         party=_ref_label(m.get("party"))
         out.append({
             "id": int(pid) if str(pid).isdigit() else pid,
@@ -88,14 +107,20 @@ def fetch_current_bundestag():
             "profile_url": pol.get("abgeordnetenwatch_url") or "",
             "role_terms": [],
         })
-    # Deduplicate by politician
+
     seen=set(); people=[]
-    for p in out:
-        if p["id"] in seen: continue
-        seen.add(p["id"]); people.append(p)
-    diagnostics["ok"]=bool(people)
-    diagnostics["records"]=len(people)
-    diagnostics["period_id"]=period_id
+    for person in out:
+        if person["id"] in seen:
+            continue
+        seen.add(person["id"])
+        people.append(person)
+
+    diagnostics["ok"] = bool(people)
+    diagnostics["records"] = len(people)
+    diagnostics["period_id"] = period_id
+    diagnostics["period_label"] = period.get("label", "")
+    if not people:
+        diagnostics["error"] = "Keine aktuell aktiven Bundestagsmandate geliefert"
     return people, diagnostics
 
 def fetch_sidejobs(mandate_ids):
