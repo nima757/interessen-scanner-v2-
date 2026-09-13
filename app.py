@@ -38,14 +38,14 @@ if "scan" in st.session_state:
     candidate_count = r.get("candidate_count", 0)
     st.caption(f"Start: {created_at} · Bundestags-Personen: {people_count} · Kandidaten: {candidate_count}")
     a,b,c,d=st.columns(4)
-    a.metric("Prüfhinweise",len(r["alerts"]))
-    b.metric("Stark",sum(x["score"]>=75 for x in r["alerts"]))
-    c.metric("Auffällig",sum(50<=x["score"]<75 for x in r["alerts"]))
-    d.metric("Quell-Datensätze",r["source_count"])
+    a.metric("Prüfhinweise",len(r.get("alerts", [])))
+    b.metric("Stark",sum(x["score"]>=75 for x in r.get("alerts", [])))
+    c.metric("Auffällig",sum(50<=x["score"]<75 for x in r.get("alerts", [])))
+    d.metric("Quell-Datensätze",r.get("source_count", 0))
 
-    if not r["scan_complete"]:
+    if not r.get("scan_complete", False):
         st.error("⚠️ Scan unvollständig: Eine Primärquelle für Personen/Mandate oder Nebentätigkeiten konnte nicht geladen werden. 'Keine Treffer' darf deshalb nicht als Entwarnung interpretiert werden.")
-    elif not r["alerts"]:
+    elif not r.get("alerts", []):
         st.success("Keine Prüfhinweise oberhalb des gewählten Schwellenwerts. Das ist keine Aussage über das Fehlen von Interessenkonflikten.")
 
     st.subheader("Quellengesundheit")
